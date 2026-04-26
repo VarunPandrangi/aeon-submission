@@ -53,7 +53,7 @@ def parse_args():
     parser.add_argument(
         "--allow-backbone-download",
         action="store_true",
-        help="Allow TerraTorch to fetch pretrained backbone weights from the internet. Default is offline local-only execution.",
+        help="Allow TerraTorch to fetch pretrained backbone weights from the internet. Default is offline execution with the bundled checkpoint.",
     )
     return parser.parse_args()
 

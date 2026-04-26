@@ -19,4 +19,3 @@ diffusers==0.30.0
 timm
 einops
 albumentations
-streamlit

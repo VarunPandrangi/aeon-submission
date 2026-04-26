@@ -1,49 +1,15 @@
-# Platform Setup
+# Notebook Setup
 
-## Local Windows Setup
+This repository is intended to be run only in Kaggle or Colab notebooks with a
+T4 GPU.
 
-This repository now includes a local setup script that uses `uv` to create a
-Python 3.11 virtual environment and install the inference dependencies.
+## Kaggle
 
-From the repo root:
-
-```powershell
-powershell -ExecutionPolicy Bypass -File .\scripts\setup_local.ps1
-```
-
-Then activate the environment:
-
-```powershell
-.\.venv\Scripts\Activate.ps1
-```
-
-Run the bundled smoke test:
-
-```powershell
-python demo.py
-```
-
-Run one bundled sample:
-
-```powershell
-python infer.py --sample karnataka_nc_g1_r0010
-```
-
-Run the Streamlit demo:
-
-```powershell
-streamlit run app.py
-```
-
-## Kaggle Setup
-
-Practical flow for Kaggle notebooks:
-
-1. Clone the GitHub repo or upload a zip of the repo as a Kaggle dataset.
-2. Create a new Kaggle notebook.
-3. Attach the repo files in the notebook UI.
-4. Install the missing Python packages.
-5. Run `demo.py`, `infer.py`, or `app.py` from `/kaggle/working`.
+1. Create a new Kaggle notebook.
+2. Set the accelerator to `T4 GPU`.
+3. Attach this repository as a Kaggle dataset or clone it into the notebook.
+4. Install the Python dependencies.
+5. Run `demo.py` or `infer.py`.
 
 Notebook cells:
 
@@ -61,20 +27,17 @@ Single-sample run on Kaggle:
 !python infer.py --sample karnataka_nc_g1_r0010
 ```
 
-Notes:
-- The packaged inference path loads the bundled checkpoint locally by default.
-- If `app.py` complains about a missing dependency, install `requirements.txt`
-  inside the notebook first.
-- If you ever need remote model downloads, pass `--allow-backbone-download`
-  and enable internet intentionally.
+Custom sample pair on Kaggle:
 
-## Colab Setup
+```python
+!python infer.py --s2 /kaggle/working/path/to/foo_s2.tif --corridor /kaggle/working/path/to/foo_corridor.tif
+```
 
-Practical flow for Colab:
+## Colab
 
-1. Put this repo on GitHub or upload a zip to Google Drive.
-2. Open a new Colab notebook.
-3. Either clone the repo from GitHub or unzip it from Drive into `/content`.
+1. Create a new Colab notebook.
+2. Set the runtime type to `T4 GPU`.
+3. Clone the repo from GitHub or unzip it from Google Drive.
 4. Install the Python dependencies.
 5. Run `demo.py` or `infer.py`.
 
@@ -110,7 +73,7 @@ Single-sample run on Colab:
 !python infer.py --sample karnataka_nc_g1_r0010
 ```
 
-Custom sample pair:
+Custom sample pair on Colab:
 
 ```python
 !python infer.py --s2 /content/path/to/foo_s2.tif --corridor /content/path/to/foo_corridor.tif

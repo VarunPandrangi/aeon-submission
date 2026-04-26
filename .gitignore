@@ -4,3 +4,7 @@ __pycache__/
 .uv-cache/
 .streamlit/
 *.log
+# Large files — hosted externally, linked in README
+checkpoints/best_model.pt
+checkpoints/*.pt
+checkpoints/*.pth

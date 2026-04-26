@@ -4,31 +4,26 @@ This repository packages an inference-first demo for corridor encroachment
 detection on Sentinel-2 patches using a fine-tuned TerraMind backbone.
 
 The checkpoint in `checkpoints/best_model.pt` is bundled with the repository.
-Inference now defaults to local-only execution and does not require downloading
-backbone weights at runtime.
+The judge workflow is notebook-based only: run it on Kaggle or Colab with a T4
+GPU.
 
 ## Judge Quickstart
 
 Target workflow:
-- create one Python 3.11 environment
-- install dependencies once
+- open a Kaggle or Colab notebook
+- enable a T4 GPU
+- install dependencies in the notebook
 - run one demo command or one inference command
 - get JSON output in under 10 minutes total setup + run time
 
 Recommended runtime:
 - Python 3.11.x
-- CPU is acceptable for the bundled 4-sample demo
+- Kaggle notebook with a T4 GPU, or Colab notebook with a T4 GPU
 - `runtime.txt` records the target interpreter family used for the packaged path
 
-Recommended setup on a clean machine:
+## Judge Setup
 
-```bash
-conda create -n encroachment-demo python=3.11 -y
-conda activate encroachment-demo
-conda install -c conda-forge gdal rasterio -y
-python -m pip install --upgrade pip
-python -m pip install -r requirements.txt
-```
+Use one of the notebook flows in `docs/platform_setup.md`.
 
 Run the bundled smoke test:
 
@@ -36,27 +31,11 @@ Run the bundled smoke test:
 python demo.py
 ```
 
-For a one-command local setup on Windows with `uv`, see
-`docs/platform_setup.md` and run:
-
-```bash
-powershell -ExecutionPolicy Bypass -File .\scripts\setup_local.ps1
-```
-
 Run one bundled sample:
 
 ```bash
 python infer.py --sample karnataka_nc_g1_r0010
 ```
-
-Run the minimal Streamlit demo:
-
-```bash
-streamlit run app.py
-```
-
-The app supports the bundled demo pair in `sample_input/` or uploaded
-`*_s2.tif` + `*_corridor.tif` files.
 
 Run one custom sample pair:
 
@@ -88,11 +67,10 @@ Bundled sample files live in `sample_input/`:
 ## Repository Entry Points
 
 - `infer.py`: single-sample inference CLI
-- `app.py`: minimal Streamlit demo
 - `demo.py`: bundled multi-sample smoke test with JSON summary
 - `src/model.py`: model definition and checkpoint loader
 - `src/inference.py`: reusable preprocessing and prediction helpers
-- `train.py`: points to the original Kaggle training notebook
+- `train.py`: points to the original notebook-based training flow
 
 ## Model Summary
 
@@ -116,16 +94,16 @@ Packaged config summary from `configs/train_config.json`:
 
 ## Reproducibility Scope
 
-This repository now supports reproducible local inference for the packaged
-checkpoint and bundled samples.
+This repository supports reproducible notebook execution for the packaged
+checkpoint and bundled samples on Kaggle or Colab with a T4 GPU.
 
 Full training reproducibility is still notebook-based, not script-based:
 - `train.py` is only a stub
 - the full training flow lives in `notebooks/notebook- aeon.ipynb`
-- the notebook expects Kaggle-hosted data and internet-backed model access
+- the notebook expects notebook-hosted data and internet-backed model access
 
 So there are two different claims:
-- packaged demo reproducibility: supported here
+- packaged demo reproducibility in Kaggle or Colab: supported here
 - full retraining reproducibility from scratch: not yet fully productized
 
 ## Known Limits
