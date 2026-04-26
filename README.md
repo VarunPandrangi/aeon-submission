@@ -1,89 +1,135 @@
 # Power Line Corridor Encroachment Detection
-### Team: your-team-name
 
-## 1. What problem are we solving?
+This repository packages an inference-first demo for corridor encroachment
+detection on Sentinel-2 patches using a fine-tuned TerraMind backbone.
 
-Karnataka's power utility (KPTCL) maintains thousands of km of high-voltage
-transmission lines through forest corridors. Vegetation encroaching into the
-Right-of-Way causes faults, fires, and outages. Manual aerial inspection costs
-~₹8–12 lakh per 100 km and happens at most once per year. A satellite-based
-detector that flags encroached corridor patches on-orbit — downlinking only a
-small alert file, not 12-band imagery — reduces inspection cost and increases
-monitoring frequency from yearly to weekly.
+The checkpoint in `checkpoints/best_model.pt` is bundled with the repository.
+Inference now defaults to local-only execution and does not require downloading
+backbone weights at runtime.
 
-**Customer:** State electricity boards, power utilities, forest departments.
-**Value prop:** "Downlink a 50-byte flag, not 2.4 MB of raw imagery."
+## Judge Quickstart
 
----
+Target workflow:
+- create one Python 3.11 environment
+- install dependencies once
+- run one demo command or one inference command
+- get JSON output in under 10 minutes total setup + run time
 
-## 2. What did we build?
+Recommended runtime:
+- Python 3.11.x
+- CPU is acceptable for the bundled 4-sample demo
+- `runtime.txt` records the target interpreter family used for the packaged path
 
-We fine-tuned IBM/ESA **TerraMind-1.0-base** (ViT-based, 87M params, pretrained
-on 9 EO modalities) on 2,000 Sentinel-2 patches covering 8 AOIs across Karnataka.
+Recommended setup on a clean machine:
 
-**Architecture:**
-- TerraMind backbone (frozen) → 768-dim patch features
-- Custom CorridorEncoder (CNN) processes the power line buffer mask
-- Global avg+max pooling → concatenate → NDVI-diff stats (in-corridor minus outside)
-- 3-layer classification head with LayerNorm + Dropout
+```bash
+conda create -n encroachment-demo python=3.11 -y
+conda activate encroachment-demo
+conda install -c conda-forge gdal rasterio -y
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt
+```
 
-**Dataset:** 1,523 has_line=1 patches (enc=0: 215, enc=1: 1,308)  
-**Split:** AOI-based — train on 6 AOIs, val=karnataka_ne, test=karnataka_nc  
-**Training:** 51 epochs, focal loss (γ=2), AdamW, WeightedRandomSampler (7.8× enc=0)
+Run the bundled smoke test:
 
----
+```bash
+python demo.py
+```
 
-## 3. How did we measure it?
+For a one-command local setup on Windows with `uv`, see
+`docs/platform_setup.md` and run:
 
-Evaluated on held-out AOI **karnataka_nc** (86 patches, 24 enc=0, 62 enc=1):
+```bash
+powershell -ExecutionPolicy Bypass -File .\scripts\setup_local.ps1
+```
 
-| Method                              |  AUC   |   AP   |   F1   |
-|-------------------------------------|--------|--------|--------|
-| Majority class (always enc=1)       | 0.500  | 0.722  | 0.924  |
-| Corridor coverage (single feature)  | ~0.63  | ~0.80  | ~0.70  |
-| LogReg (NDVI-diff + corridor)       | ~0.68  | ~0.87  | ~0.75  |
-| **TerraMind + fine-tuned head (ours)** | **0.787** | **0.905** | **0.831** |
+Run one bundled sample:
 
-TerraMind provides a **+0.09–0.12 AUC lift** over the best non-deep baseline.
-Operating threshold: 0.30 (recall-optimised) → catches 93/104 encroached patches
-with 38 false alarms on the test AOI.
+```bash
+python infer.py --sample karnataka_nc_g1_r0010
+```
 
----
+Run the minimal Streamlit demo:
 
-## 4. Orbital-compute story
+```bash
+streamlit run app.py
+```
 
-| Item | Value |
-|------|-------|
-| Model size (fp32) | 334 MB |
-| Model size (fp16) | **167 MB** ← deploy this |
-| Model size (int8 quantized) | ~84 MB |
-| Single-patch latency (T4 GPU) | ~X ms (see `docs/edge_feasibility.txt`) |
-| Estimated latency (Jetson AGX Orin) | ~3× T4 |
-| Jetson NX RAM (8 GB) fit? | **YES** — 167 MB << 8 GB |
-| Downlink per tile (model output) | ~50 bytes |
-| Downlink per tile (raw Sentinel-2) | ~2.4 MB |
-| **Bandwidth saving** | **~48,000×** |
+The app supports the bundled demo pair in `sample_input/` or uploaded
+`*_s2.tif` + `*_corridor.tif` files.
 
-Weights > 200 MB are hosted externally: [link to be added before final submission]
+Run one custom sample pair:
 
-The backbone is frozen — it runs once per tile as a feature extractor. Only the
-515K-param head is task-specific and could be swapped per customer with minimal
-overhead. This maps cleanly to TM2Space's OrbitLab model-upload model.
+```bash
+python infer.py --s2 path/to/patch_s2.tif --corridor path/to/patch_corridor.tif
+```
 
----
+If your Sentinel-2 file follows the `*_s2.tif` naming convention and the
+matching `*_corridor.tif` sits next to it, `--corridor` is optional:
 
-## 5. What doesn't work yet
+```bash
+python infer.py --s2 path/to/patch_s2.tif
+```
 
-- **Only 215 non-encroached training patches** — class imbalance is the primary
-  limit on AUC. More negative-class labeled data would likely push val AUC to 0.80+.
-- **Geographic generalization** — 5 of 8 AOIs are 97–100% encroached, so the
-  model has seen few enc=0 examples from diverse geographies.
-- **Cloud cover** — we use cloud-free Sentinel-2 only. A SAR fallback (Sentinel-1)
-  would make this all-weather.
-- **Inference latency on Jetson** — estimated at 3× T4 via back-of-envelope;
-  not measured on actual hardware.
-- **Severity regression** removed from final model due to label leakage in
-  original dataset generation pipeline.
+## What The Demo Expects
 
-With another week: collect more enc=0 patches, add Sentinel-1 SAR as a second
-modality via TerraMind's TiM, and benchmark on actual Jetson AGX Orin hardware.
+This model does not take a raw image alone. It requires:
+- one Sentinel-2 patch GeoTIFF
+- one corridor mask GeoTIFF for the same patch
+
+The CLI now makes that explicit and can auto-resolve the corridor mask when the
+file names follow the packaged naming convention.
+
+Bundled sample files live in `sample_input/`:
+- `*_s2.tif` for the Sentinel-2 patch
+- `*_corridor.tif` for the corridor mask
+- `sample_labels.csv` for expected labels on the demo set
+
+## Repository Entry Points
+
+- `infer.py`: single-sample inference CLI
+- `app.py`: minimal Streamlit demo
+- `demo.py`: bundled multi-sample smoke test with JSON summary
+- `src/model.py`: model definition and checkpoint loader
+- `src/inference.py`: reusable preprocessing and prediction helpers
+- `train.py`: points to the original Kaggle training notebook
+
+## Model Summary
+
+Architecture:
+- TerraMind-1.0-base backbone
+- frozen backbone features
+- corridor encoder CNN
+- pooled backbone + corridor features
+- NDVI difference statistics
+- MLP binary classifier head
+
+Packaged config summary from `configs/train_config.json`:
+- AOI split: train on 6 AOIs, val on `karnataka_ne`, test on `karnataka_nc`
+- image size: `224`
+- threshold: `0.30`
+- best packaged test metrics:
+  - AUC: `0.7866`
+  - AP: `0.9048`
+  - F1: `0.8305`
+  - accuracy: `0.7674`
+
+## Reproducibility Scope
+
+This repository now supports reproducible local inference for the packaged
+checkpoint and bundled samples.
+
+Full training reproducibility is still notebook-based, not script-based:
+- `train.py` is only a stub
+- the full training flow lives in `notebooks/notebook- aeon.ipynb`
+- the notebook expects Kaggle-hosted data and internet-backed model access
+
+So there are two different claims:
+- packaged demo reproducibility: supported here
+- full retraining reproducibility from scratch: not yet fully productized
+
+## Known Limits
+
+- The model needs a corridor mask, not just a raw satellite patch.
+- The current demo path is optimized for verification, not retraining.
+- Jetson latency numbers in `docs/edge_feasibility.md` are still estimates.

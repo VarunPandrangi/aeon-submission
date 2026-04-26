@@ -1,41 +1,33 @@
 # Edge Inference Feasibility
 
+## Packaged Artifact
+
+The repository ships `checkpoints/best_model.pt`, which contains the full model
+state dict used by the inference demo. The single-sample inference path can run
+offline once the Python environment is installed.
+
 ## Model Size
-| Format       | Size     |
-|--------------|----------|
-| fp32         | ~334 MB  |
-| fp16         | ~167 MB  |  ← recommended for deployment
-| int8 (est.)  | ~84 MB   |
 
-Checkpoint file (head only, fp32): see checkpoints/best_model.pt
+| Format | Size |
+|---|---:|
+| Packaged checkpoint (fp32) | ~335 MB |
+| Estimated fp16 export | ~167 MB |
+| Estimated int8 export | ~84 MB |
 
-## Inference Latency
-Measured on T4 GPU (Kaggle, single patch, batch=1):
-- See `docs/edge_feasibility.txt` generated during evaluation cell
+## Current Deployment Claim
 
-## Jetson AGX Orin Estimate
-- T4 peak fp16: ~65 TFLOPS
-- Jetson AGX Orin peak fp16: ~67 TFLOPS (similar peak, but thermal throttled on orbit)
-- Conservative estimate: 3× T4 latency on Orin
-- Jetson NX (8 GB RAM): model fits comfortably (167 MB << 8 GB)
+What is supported by this repository today:
+- local CPU or GPU inference for packaged samples
+- local checkpoint loading without a runtime backbone download
+- one-command smoke testing with `python demo.py`
 
-## Bandwidth Saving
-| Item                          | Size        |
-|-------------------------------|-------------|
-| Model output (1 flag + score) | ~50 bytes   |
-| Raw Sentinel-2 patch (256x256x12 fp16) | ~2.4 MB |
-| **Bandwidth saving**          | **~48,000×** |
+What is still an estimate or future work:
+- Jetson latency measurements on real hardware
+- TensorRT export and benchmark numbers
+- power draw per inference
 
-## Deployment Path
-1. Export model to fp16 with `model.half()`
-2. Quantize head to int8 with `torch.quantization` (backbone already frozen)
-3. Export to ONNX for TensorRT deployment on Jetson
-4. Estimated TensorRT speedup over PyTorch: 2–4×
+## Notes
 
-## What We Did Not Measure
-- Actual latency on Jetson hardware (not available)
-- Power draw per inference
-- TensorRT-optimized latency
-
-These are honest gaps. The back-of-envelope numbers above are based on
-published Jetson AGX Orin specs vs T4 FLOP counts.
+The existing orbital-compute argument is still directionally valid, but the
+reproducible artifact in this repo is the local inference path rather than a
+fully benchmarked embedded deployment package.
